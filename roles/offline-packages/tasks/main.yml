@@ -1,0 +1,24 @@
+---
+- name: Create target package directory
+  file:
+    path: "{{ target_package_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Copy offline packages to target nodes
+  synchronize:
+    src: "{{ offline_package_dir }}/"
+    dest: "{{ target_package_dir }}/"
+    delete: no
+    recursive: yes
+  delegate_to: localhost
+
+- name: Verify packages were copied
+  stat:
+    path: "{{ target_package_dir }}/rpms"
+  register: packages_dir
+
+- name: Fail if packages directory not found
+  fail:
+    msg: "Packages directory not found at {{ target_package_dir }}/rpms"
+  when: not packages_dir.stat.exists

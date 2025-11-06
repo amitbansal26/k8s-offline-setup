@@ -1,0 +1,29 @@
+# Ansible
+*.retry
+
+# Downloaded packages
+downloads/
+packages/
+*.rpm
+*.tar.gz
+*.tgz
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# Local inventory files (user-specific)
+inventory/hosts.local
+
+# Python
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+
+# Vagrant
+.vagrant/
+*.box
+.DS_Store

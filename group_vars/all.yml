@@ -1,0 +1,44 @@
+---
+# Kubernetes version
+kubernetes_version: "1.31.2"
+kubernetes_version_rhel_package: "1.31.2"
+
+# Container runtime
+containerd_version: "1.7.22"
+
+# CNI Plugin
+cni_plugin: "calico"  # Options: calico, flannel
+calico_version: "v3.28.2"
+flannel_version: "v0.25.7"
+
+# Network configuration
+pod_network_cidr: "10.244.0.0/16"
+service_cidr: "10.96.0.0/12"
+
+# Offline package directory (on control machine)
+offline_package_dir: "/tmp/k8s-packages"
+
+# Target package directory (on nodes)
+target_package_dir: "/opt/k8s-packages"
+
+# SELinux
+selinux_state: "disabled"  # Options: enforcing, permissive, disabled
+
+# Firewall
+firewalld_state: "stopped"
+firewalld_enabled: false
+
+# Swap
+swap_enabled: false
+
+# Container runtime socket
+container_runtime_endpoint: "unix:///run/containerd/containerd.sock"
+
+# API server advertise address (set this to master node IP)
+api_server_advertise_address: ""
+
+# Load balancer endpoint (for HA setup, optional)
+load_balancer_endpoint: ""
+
+# Node name (optional, defaults to hostname)
+node_name: "{{ ansible_hostname }}"

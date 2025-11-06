@@ -1,0 +1,42 @@
+---
+- name: Reset Kubernetes cluster
+  hosts: k8s_cluster
+  become: yes
+  gather_facts: no
+  
+  tasks:
+    - name: Reset kubeadm
+      shell: kubeadm reset -f
+      ignore_errors: yes
+    
+    - name: Stop kubelet and containerd
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+      loop:
+        - kubelet
+        - containerd
+      ignore_errors: yes
+    
+    - name: Remove Kubernetes directories
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/kubernetes
+        - /var/lib/kubelet
+        - /var/lib/etcd
+        - /etc/cni/net.d
+        - /root/.kube
+    
+    - name: Remove iptables rules
+      shell: |
+        iptables -F
+        iptables -t nat -F
+        iptables -t mangle -F
+        iptables -X
+      ignore_errors: yes
+    
+    - name: Display reset completion message
+      debug:
+        msg: "Kubernetes cluster has been reset. You can now run site.yml to reinstall."

@@ -1,0 +1,105 @@
+---
+- name: Verify Kubernetes cluster health
+  hosts: masters[0]
+  become: yes
+  gather_facts: yes
+  
+  tasks:
+    - name: Check cluster nodes
+      shell: kubectl get nodes -o wide
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: nodes_status
+    
+    - name: Display nodes status
+      debug:
+        var: nodes_status.stdout_lines
+    
+    - name: Check all pods
+      shell: kubectl get pods --all-namespaces -o wide
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: pods_status
+    
+    - name: Display pods status
+      debug:
+        var: pods_status.stdout_lines
+    
+    - name: Check cluster info
+      shell: kubectl cluster-info
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: cluster_info
+    
+    - name: Display cluster info
+      debug:
+        var: cluster_info.stdout_lines
+    
+    - name: Check component status
+      shell: kubectl get componentstatuses
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: component_status
+      ignore_errors: yes
+    
+    - name: Display component status
+      debug:
+        var: component_status.stdout_lines
+      when: component_status.rc == 0
+    
+    - name: Verify containerd is running on all nodes
+      shell: systemctl is-active containerd
+      delegate_to: "{{ item }}"
+      loop: "{{ groups['k8s_cluster'] }}"
+      register: containerd_status
+    
+    - name: Display containerd status
+      debug:
+        msg: "Containerd is {{ item.stdout }} on {{ item.item }}"
+      loop: "{{ containerd_status.results }}"
+    
+    - name: Verify kubelet is running on all nodes
+      shell: systemctl is-active kubelet
+      delegate_to: "{{ item }}"
+      loop: "{{ groups['k8s_cluster'] }}"
+      register: kubelet_status
+    
+    - name: Display kubelet status
+      debug:
+        msg: "Kubelet is {{ item.stdout }} on {{ item.item }}"
+      loop: "{{ kubelet_status.results }}"
+    
+    - name: Create test deployment
+      shell: kubectl create deployment nginx-test --image=nginx:latest --replicas=1
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: test_deploy
+      failed_when: test_deploy.rc != 0 and "already exists" not in test_deploy.stderr
+      ignore_errors: yes
+    
+    - name: Wait for test deployment
+      shell: kubectl wait --for=condition=available --timeout=60s deployment/nginx-test
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      ignore_errors: yes
+      register: test_deployment
+    
+    - name: Display test deployment status
+      debug:
+        var: test_deployment.stdout
+      when: test_deployment.rc == 0
+    
+    - name: Clean up test deployment
+      shell: kubectl delete deployment nginx-test
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      ignore_errors: yes
+    
+    - name: Final verification summary
+      debug:
+        msg: |
+          Cluster verification complete!
+          - Check the output above for node and pod status
+          - All nodes should be in 'Ready' state
+          - All system pods should be 'Running'
+          - Containerd and kubelet should be 'active' on all nodes
