@@ -53,9 +53,9 @@
 - name: Install required packages from offline repository
   shell: |
     cd {{ target_package_dir }}/rpms
-    rpm -Uvh --force iproute-tc-*.rpm socat-*.rpm conntrack-tools-*.rpm ebtables-*.rpm ethtool-*.rpm || true
-  args:
-    warn: false
+    rpm -Uvh --force iproute-tc-*.rpm socat-*.rpm conntrack-tools-*.rpm ebtables-*.rpm ethtool-*.rpm
+  register: prereq_install
+  failed_when: prereq_install.rc != 0 and "is already installed" not in prereq_install.stderr
 
 - name: Ensure required directories exist
   file:

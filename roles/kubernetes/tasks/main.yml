@@ -2,10 +2,9 @@
 - name: Install Kubernetes packages from offline repository
   shell: |
     cd {{ target_package_dir }}/rpms
-    rpm -Uvh --force kubeadm-*.rpm kubelet-*.rpm kubectl-*.rpm || true
-  args:
-    warn: false
+    rpm -Uvh --force kubeadm-*.rpm kubelet-*.rpm kubectl-*.rpm
   register: k8s_install
+  failed_when: k8s_install.rc != 0 and "is already installed" not in k8s_install.stderr
 
 - name: Enable and start kubelet
   systemd:

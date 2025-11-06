@@ -70,10 +70,11 @@
       loop: "{{ kubelet_status.results }}"
     
     - name: Create test deployment
-      shell: |
-        kubectl create deployment nginx-test --image=nginx:latest --replicas=1 || true
+      shell: kubectl create deployment nginx-test --image=nginx:latest --replicas=1
       environment:
         KUBECONFIG: /etc/kubernetes/admin.conf
+      register: test_deploy
+      failed_when: test_deploy.rc != 0 and "already exists" not in test_deploy.stderr
       ignore_errors: yes
     
     - name: Wait for test deployment
