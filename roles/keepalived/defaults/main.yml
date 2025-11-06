@@ -1,0 +1,7 @@
+---
+# Keepalived configuration defaults
+keepalived_virtual_router_id: 51
+keepalived_priority_master: 101
+keepalived_priority_backup: 100
+keepalived_auth_pass: "k8s-ha-pass"
+keepalived_check_interval: 2

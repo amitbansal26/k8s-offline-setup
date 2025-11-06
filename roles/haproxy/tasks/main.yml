@@ -1,0 +1,40 @@
+---
+- name: Install HAProxy
+  yum:
+    name: haproxy
+    state: present
+
+- name: Enable and configure firewall for HAProxy
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  loop:
+    - "{{ haproxy_frontend_port }}/tcp"
+    - "{{ haproxy_stats_port }}/tcp"
+  when: firewalld_state != 'stopped'
+  ignore_errors: yes
+
+- name: Configure HAProxy
+  template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart haproxy
+
+- name: Enable and start HAProxy service
+  systemd:
+    name: haproxy
+    enabled: yes
+    state: started
+
+- name: Configure SELinux for HAProxy
+  seboolean:
+    name: haproxy_connect_any
+    state: yes
+    persistent: yes
+  when: selinux_state != 'disabled'
+  ignore_errors: yes

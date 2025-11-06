@@ -4,10 +4,12 @@ This guide explains how to use Vagrant to create a local Kubernetes cluster for 
 
 ## Overview
 
-The provided Vagrantfile creates a multi-node Kubernetes cluster with:
+The provided Vagrantfile creates a highly available multi-node Kubernetes cluster with:
+- 2 Load balancer nodes (k8s-lb1, k8s-lb2) - 1 CPU, 1GB RAM each (HAProxy + Keepalived)
 - 3 Master nodes (k8s-master1, k8s-master2, k8s-master3) - 2 CPU, 4GB RAM each
 - 5 Worker nodes (k8s-worker1 through k8s-worker5) - 2 CPU, 2GB RAM each
 - Private network: 192.168.56.x
+- Virtual IP: 192.168.56.100 (for HA API server access)
 - Rocky Linux 9 (closest to Rocky Linux 10)
 
 ## Prerequisites
@@ -41,9 +43,12 @@ The provided Vagrantfile creates a multi-node Kubernetes cluster with:
 
 ### System Requirements
 
-- **CPU**: 6+ cores (for 3 VMs with 2 cores each)
-- **RAM**: 8GB minimum (16GB recommended)
-- **Disk**: 30GB free space
+- **CPU**: 12+ cores (2 LBs + 3 masters + 5 workers = 10 VMs)
+- **RAM**: 24GB minimum (32GB recommended)
+  - Load balancers: 2GB (2 x 1GB)
+  - Masters: 12GB (3 x 4GB)
+  - Workers: 10GB (5 x 2GB)
+- **Disk**: 50GB free space
 - **OS**: Windows 10/11, macOS 10.15+, or Linux
 
 ## Quick Start
@@ -58,14 +63,14 @@ cd k8s-offline-setup
 ### 2. Start Vagrant VMs
 
 ```bash
-# Start all VMs (master and workers)
+# Start all VMs (load balancers, masters, and workers)
 vagrant up
 
 # This will:
 # - Download Rocky Linux 9 box (first time only)
-# - Create 3 VMs (1 master, 2 workers)
+# - Create 10 VMs (2 load balancers, 3 masters, 5 workers)
 # - Configure networking and base system
-# - Takes 5-10 minutes on first run
+# - Takes 10-20 minutes on first run
 ```
 
 ### 3. Verify VMs are Running
@@ -75,9 +80,19 @@ vagrant up
 vagrant status
 
 # Should show:
+# k8s-lb1        running (virtualbox)
+# k8s-lb2        running (virtualbox)
 # k8s-master1    running (virtualbox)
+# k8s-master2    running (virtualbox)
+# k8s-master3    running (virtualbox)
 # k8s-worker1    running (virtualbox)
 # k8s-worker2    running (virtualbox)
+# k8s-worker3    running (virtualbox)
+# k8s-worker4    running (virtualbox)
+# k8s-worker5    running (virtualbox)
+
+# SSH into load balancer
+vagrant ssh k8s-lb1
 
 # SSH into master node
 vagrant ssh k8s-master1
@@ -129,8 +144,19 @@ ansible-playbook -i inventory/vagrant verify-cluster.yml
 
 # Or manually check on master node
 vagrant ssh k8s-master1
-kubectl get nodes
+kubectl get nodes  # Should show 3 masters + 5 workers = 8 nodes
 kubectl get pods --all-namespaces
+
+# Check cluster HA status
+kubectl get nodes -o wide
+kubectl cluster-info
+
+# Test API access via Virtual IP
+curl -k https://192.168.56.100:6443/version
+
+# Check HAProxy stats
+# Open browser to http://192.168.56.5:8404/stats
+# Username: admin, Password: admin
 ```
 
 ## Customization
@@ -141,13 +167,16 @@ Edit the `Vagrantfile` to change cluster configuration:
 
 ```ruby
 # Number of nodes
-MASTER_COUNT = 1      # Change to 3 for HA setup
-WORKER_COUNT = 2      # Increase for more workers
+LOADBALANCER_COUNT = 2  # Load balancer nodes
+MASTER_COUNT = 3        # Master nodes for HA
+WORKER_COUNT = 5        # Worker nodes
 
 # Resource allocation
-MASTER_MEMORY = 4096  # Master node RAM
-WORKER_MEMORY = 2048  # Worker node RAM
-MASTER_CPU = 2        # Master node CPUs
+LOADBALANCER_MEMORY = 1024  # Load balancer RAM
+MASTER_MEMORY = 4096   # Master node RAM
+WORKER_MEMORY = 2048   # Worker node RAM
+LOADBALANCER_CPU = 1   # Load balancer CPUs
+MASTER_CPU = 2         # Master node CPUs
 WORKER_CPU = 2        # Worker node CPUs
 ```
 

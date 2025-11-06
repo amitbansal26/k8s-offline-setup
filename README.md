@@ -100,8 +100,12 @@ cp inventory/hosts.example inventory/hosts
 vi inventory/hosts
 ```
 
-Add your master and worker nodes:
+Add your load balancer, master and worker nodes:
 ```ini
+[loadbalancers]
+lb1 ansible_host=192.168.1.5 ansible_user=root
+lb2 ansible_host=192.168.1.6 ansible_user=root
+
 [masters]
 master1 ansible_host=192.168.1.10 ansible_user=root
 master2 ansible_host=192.168.1.11 ansible_user=root
@@ -113,12 +117,16 @@ worker2 ansible_host=192.168.1.21 ansible_user=root
 worker3 ansible_host=192.168.1.22 ansible_user=root
 worker4 ansible_host=192.168.1.23 ansible_user=root
 worker5 ansible_host=192.168.1.24 ansible_user=root
+
+[loadbalancers:vars]
+keepalived_interface=eth0
+virtual_ip=192.168.1.100
 ```
 
 3. Update `group_vars/all.yml` with your network configuration:
 ```yaml
-# Set the master node IP
-api_server_advertise_address: "192.168.1.10"
+# Load balancer endpoint for HA (using virtual IP)
+load_balancer_endpoint: "192.168.1.100:6443"
 
 # Adjust network CIDRs if needed
 pod_network_cidr: "10.244.0.0/16"
@@ -177,20 +185,88 @@ kubectl get pods --all-namespaces
 
 ### High Availability (HA) Setup
 
-For HA setup with multiple master nodes:
+The default configuration provides a highly available Kubernetes cluster with:
+- **3 Master nodes** for control plane redundancy
+- **2 Load balancer nodes** running HAProxy and Keepalived
+- **Virtual IP (VIP)** for API server access
+- **5 Worker nodes** for workload distribution
 
-1. Set up a load balancer for the API server
-2. Configure the load balancer endpoint:
-```yaml
-load_balancer_endpoint: "loadbalancer.example.com:6443"
+#### HA Architecture
+
+```
+                    Virtual IP (192.168.56.100)
+                              |
+                    +---------+---------+
+                    |                   |
+            HAProxy + Keepalived   HAProxy + Keepalived
+                 (LB1)                  (LB2)
+                    |                   |
+        +-----------+-------------------+-----------+
+        |           |                   |           |
+    Master1     Master2             Master3     [Master1-3]
+                    |
+            +-------+-------+
+            |       |       |
+        Worker1  Worker2  ... Worker5
 ```
 
-3. Add multiple masters to inventory:
+#### Setup Steps
+
+1. **Configure load balancers** in inventory:
+```ini
+[loadbalancers]
+lb1 ansible_host=192.168.1.5 ansible_user=root
+lb2 ansible_host=192.168.1.6 ansible_user=root
+
+[loadbalancers:vars]
+keepalived_interface=eth0  # Network interface for VIP
+virtual_ip=192.168.1.100   # Virtual IP for HA
+```
+
+2. **Configure the load balancer endpoint** in `group_vars/all.yml`:
+```yaml
+load_balancer_endpoint: "192.168.1.100:6443"
+```
+
+3. **Add multiple masters** to inventory:
 ```ini
 [masters]
 master1 ansible_host=192.168.1.10 ansible_user=root
 master2 ansible_host=192.168.1.11 ansible_user=root
 master3 ansible_host=192.168.1.12 ansible_user=root
+```
+
+4. **Deploy the cluster**:
+```bash
+ansible-playbook -i inventory/hosts site.yml
+```
+
+The playbook will:
+- Set up HAProxy on load balancer nodes to distribute API traffic
+- Configure Keepalived for VIP failover
+- Initialize the first master node
+- Join additional master nodes to the cluster
+- Join worker nodes to the cluster
+
+#### Testing HA Setup
+
+Verify the HA configuration:
+
+```bash
+# Check Virtual IP is active
+ip addr show | grep 192.168.1.100
+
+# Check HAProxy status
+systemctl status haproxy
+
+# Check Keepalived status
+systemctl status keepalived
+
+# Access API server via VIP
+kubectl --server=https://192.168.1.100:6443 get nodes
+
+# Test failover by stopping one load balancer
+systemctl stop keepalived  # VIP should move to backup
 ```
 
 ### Changing CNI Plugin
