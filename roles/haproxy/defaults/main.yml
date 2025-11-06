@@ -1,0 +1,5 @@
+---
+# HAProxy configuration defaults
+haproxy_stats_port: 8404
+haproxy_frontend_port: 6443
+haproxy_backend_port: 6443

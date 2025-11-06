@@ -1,4 +1,13 @@
 ---
+- name: Setup load balancers with HAProxy and Keepalived
+  hosts: loadbalancers
+  become: yes
+  gather_facts: yes
+  
+  roles:
+    - haproxy
+    - keepalived
+
 - name: Setup Kubernetes cluster in air-gapped environment
   hosts: k8s_cluster
   become: yes

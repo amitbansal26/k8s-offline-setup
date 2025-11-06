@@ -1,0 +1,34 @@
+global_defs {
+    router_id LVS_DEVEL
+    vrrp_skip_check_adv_addr
+    vrrp_garp_interval 0
+    vrrp_gna_interval 0
+}
+
+vrrp_script check_haproxy {
+    script "killall -0 haproxy"
+    interval {{ keepalived_check_interval }}
+    weight 2
+}
+
+vrrp_instance VI_1 {
+    state {% if inventory_hostname == groups['loadbalancers'][0] %}MASTER{% else %}BACKUP{% endif %}
+
+    interface {{ keepalived_interface }}
+    virtual_router_id {{ keepalived_virtual_router_id }}
+    priority {% if inventory_hostname == groups['loadbalancers'][0] %}{{ keepalived_priority_master }}{% else %}{{ keepalived_priority_backup }}{% endif %}
+
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass {{ keepalived_auth_pass }}
+    }
+
+    virtual_ipaddress {
+        {{ virtual_ip }}
+    }
+
+    track_script {
+        check_haproxy
+    }
+}

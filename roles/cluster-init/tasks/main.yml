@@ -4,7 +4,7 @@
     path: /etc/kubernetes/admin.conf
   register: k8s_initialized
 
-- name: Initialize Kubernetes cluster
+- name: Initialize Kubernetes cluster on first master
   shell: |
     kubeadm init \
       --kubernetes-version={{ kubernetes_version }} \
@@ -12,8 +12,10 @@
       --service-cidr={{ service_cidr }} \
       --cri-socket={{ container_runtime_endpoint }} \
       {% if api_server_advertise_address %}--apiserver-advertise-address={{ api_server_advertise_address }}{% endif %} \
-      {% if load_balancer_endpoint %}--control-plane-endpoint={{ load_balancer_endpoint }}{% endif %}
-  when: not k8s_initialized.stat.exists
+      {% if load_balancer_endpoint %}--control-plane-endpoint={{ load_balancer_endpoint }} --upload-certs{% endif %}
+  when: 
+    - not k8s_initialized.stat.exists
+    - inventory_hostname == groups['masters'][0]
   register: kubeadm_init
 
 - name: Create .kube directory for root user
@@ -28,24 +30,79 @@
     dest: /root/.kube/config
     remote_src: yes
     mode: '0600'
+  when: k8s_initialized.stat.exists or inventory_hostname == groups['masters'][0]
 
 - name: Generate join command for worker nodes
   shell: kubeadm token create --print-join-command
   register: join_command_output
+  when: inventory_hostname == groups['masters'][0]
 
-- name: Save join command to file
+- name: Generate certificate key for control plane join
+  shell: kubeadm init phase upload-certs --upload-certs | tail -1
+  register: certificate_key_output
+  when: 
+    - inventory_hostname == groups['masters'][0]
+    - groups['masters'] | length > 1
+
+- name: Generate join command for control plane nodes
+  shell: |
+    echo "{{ join_command_output.stdout }} --control-plane --certificate-key {{ certificate_key_output.stdout }}"
+  register: control_plane_join_command
+  when: 
+    - inventory_hostname == groups['masters'][0]
+    - groups['masters'] | length > 1
+
+- name: Save worker join command to file
   copy:
     content: "{{ join_command_output.stdout }}"
     dest: /tmp/k8s-join-command.sh
     mode: '0755'
+  when: inventory_hostname == groups['masters'][0]
 
-- name: Fetch join command to local machine
+- name: Save control plane join command to file
+  copy:
+    content: "{{ control_plane_join_command.stdout }}"
+    dest: /tmp/k8s-join-control-plane.sh
+    mode: '0755'
+  when: 
+    - inventory_hostname == groups['masters'][0]
+    - groups['masters'] | length > 1
+
+- name: Fetch worker join command to local machine
   fetch:
     src: /tmp/k8s-join-command.sh
     dest: /tmp/k8s-join-command.sh
     flat: yes
+  when: inventory_hostname == groups['masters'][0]
+
+- name: Fetch control plane join command to local machine
+  fetch:
+    src: /tmp/k8s-join-control-plane.sh
+    dest: /tmp/k8s-join-control-plane.sh
+    flat: yes
+  when: 
+    - inventory_hostname == groups['masters'][0]
+    - groups['masters'] | length > 1
+
+- name: Copy control plane join command to additional masters
+  copy:
+    src: /tmp/k8s-join-control-plane.sh
+    dest: /tmp/k8s-join-control-plane.sh
+    mode: '0755'
+  when: 
+    - inventory_hostname != groups['masters'][0]
+    - not k8s_initialized.stat.exists
+
+- name: Join additional master nodes to cluster
+  shell: /tmp/k8s-join-control-plane.sh
+  when: 
+    - inventory_hostname != groups['masters'][0]
+    - not k8s_initialized.stat.exists
+  register: control_plane_join_result
 
 - name: Display cluster initialization status
   debug:
-    msg: "Kubernetes cluster initialized successfully. Join command saved to /tmp/k8s-join-command.sh"
-  when: kubeadm_init is changed
+    msg: "Kubernetes cluster initialized successfully. Join commands saved."
+  when: 
+    - inventory_hostname == groups['masters'][0]
+    - kubeadm_init is changed

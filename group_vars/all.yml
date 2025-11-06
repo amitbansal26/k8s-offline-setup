@@ -37,8 +37,12 @@ container_runtime_endpoint: "unix:///run/containerd/containerd.sock"
 # API server advertise address (set this to master node IP)
 api_server_advertise_address: ""
 
-# Load balancer endpoint (for HA setup, optional)
+# Load balancer endpoint (for HA setup with HAProxy/Keepalived)
+# Use the virtual IP:port (e.g., "192.168.56.100:6443")
 load_balancer_endpoint: ""
+
+# Virtual IP for HAProxy/Keepalived (set in inventory loadbalancers:vars)
+# virtual_ip: "192.168.56.100"
 
 # Node name (optional, defaults to hostname)
 node_name: "{{ ansible_hostname }}"
