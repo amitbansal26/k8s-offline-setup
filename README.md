@@ -104,10 +104,15 @@ Add your master and worker nodes:
 ```ini
 [masters]
 master1 ansible_host=192.168.1.10 ansible_user=root
+master2 ansible_host=192.168.1.11 ansible_user=root
+master3 ansible_host=192.168.1.12 ansible_user=root
 
 [workers]
-worker1 ansible_host=192.168.1.11 ansible_user=root
-worker2 ansible_host=192.168.1.12 ansible_user=root
+worker1 ansible_host=192.168.1.20 ansible_user=root
+worker2 ansible_host=192.168.1.21 ansible_user=root
+worker3 ansible_host=192.168.1.22 ansible_user=root
+worker4 ansible_host=192.168.1.23 ansible_user=root
+worker5 ansible_host=192.168.1.24 ansible_user=root
 ```
 
 3. Update `group_vars/all.yml` with your network configuration:

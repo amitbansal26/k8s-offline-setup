@@ -5,8 +5,8 @@
 # This creates a multi-node Kubernetes cluster using Rocky Linux 10
 
 # Cluster configuration
-MASTER_COUNT = 1
-WORKER_COUNT = 2
+MASTER_COUNT = 3
+WORKER_COUNT = 5
 MASTER_CPU = 2
 MASTER_MEMORY = 4096
 WORKER_CPU = 2

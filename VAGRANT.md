@@ -5,8 +5,8 @@ This guide explains how to use Vagrant to create a local Kubernetes cluster for 
 ## Overview
 
 The provided Vagrantfile creates a multi-node Kubernetes cluster with:
-- 1 Master node (k8s-master1) - 2 CPU, 4GB RAM
-- 2 Worker nodes (k8s-worker1, k8s-worker2) - 2 CPU, 2GB RAM each
+- 3 Master nodes (k8s-master1, k8s-master2, k8s-master3) - 2 CPU, 4GB RAM each
+- 5 Worker nodes (k8s-worker1 through k8s-worker5) - 2 CPU, 2GB RAM each
 - Private network: 192.168.56.x
 - Rocky Linux 9 (closest to Rocky Linux 10)
 
