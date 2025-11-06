@@ -59,6 +59,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Updated to Kubernetes 1.31.2 (latest stable version)
+- Updated Containerd to 1.7.22
+- Updated Calico to v3.28.2
+- Updated Flannel to v0.25.7
+
+### Added
+- Vagrant setup for local development and testing
+- VAGRANT.md: Comprehensive Vagrant documentation
+- Vagrantfile: Multi-node cluster configuration
+- inventory/vagrant: Pre-configured Vagrant inventory
+- Local testing workflow support
+
 ### Planned
 - Kubernetes upgrade playbook
 - Backup and restore automation

@@ -8,15 +8,24 @@ This repository contains Ansible playbooks and roles to deploy a production-read
 
 ## Features
 
+- **Latest Kubernetes**: Supports Kubernetes 1.31.2 (latest stable version)
 - **Air-gapped deployment**: All required packages can be downloaded once and transferred to offline environments
 - **Rocky Linux 10 support**: Optimized for Rocky Linux 10
-- **Container runtime**: Uses containerd as the container runtime
+- **Vagrant support**: Local development environment included for testing
+- **Container runtime**: Uses containerd 1.7.22 as the container runtime
 - **CNI plugins**: Choose between Calico or Flannel for pod networking
 - **Modular roles**: Organized into reusable Ansible roles
 - **Idempotent**: Safe to run multiple times
 - **Prerequisites automation**: Automatically configures SELinux, firewall, swap, and kernel parameters
 
 ## Prerequisites
+
+### For Local Development/Testing (Vagrant)
+- VirtualBox 6.1 or higher
+- Vagrant 2.2 or higher
+- 8GB RAM minimum (16GB recommended)
+- 30GB free disk space
+- See [VAGRANT.md](VAGRANT.md) for detailed setup
 
 ### Control Node (where you run Ansible)
 - Ansible 2.9 or higher
@@ -31,6 +40,25 @@ This repository contains Ansible playbooks and roles to deploy a production-read
 - At least 20GB disk space
 
 ## Quick Start
+
+### Option 1: Local Testing with Vagrant
+
+Perfect for learning, development, and testing:
+
+```bash
+# 1. Start VMs
+vagrant up
+
+# 2. Deploy Kubernetes
+ansible-playbook -i inventory/vagrant site.yml
+
+# 3. Verify cluster
+ansible-playbook -i inventory/vagrant verify-cluster.yml
+```
+
+See [VAGRANT.md](VAGRANT.md) for comprehensive Vagrant documentation.
+
+### Option 2: Production Air-Gapped Deployment
 
 ### Step 1: Download Required Packages (on a machine with internet access)
 
@@ -131,8 +159,8 @@ kubectl get pods --all-namespaces
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `kubernetes_version` | `1.28.0` | Kubernetes version to install |
-| `containerd_version` | `1.7.8` | Containerd version |
+| `kubernetes_version` | `1.31.2` | Kubernetes version to install |
+| `containerd_version` | `1.7.22` | Containerd version |
 | `cni_plugin` | `calico` | CNI plugin (calico or flannel) |
 | `pod_network_cidr` | `10.244.0.0/16` | Pod network CIDR |
 | `service_cidr` | `10.96.0.0/12` | Service network CIDR |

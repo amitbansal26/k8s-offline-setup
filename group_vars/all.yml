@@ -1,15 +1,15 @@
 ---
 # Kubernetes version
-kubernetes_version: "1.28.0"
-kubernetes_version_rhel_package: "1.28.0"
+kubernetes_version: "1.31.2"
+kubernetes_version_rhel_package: "1.31.2"
 
 # Container runtime
-containerd_version: "1.7.8"
+containerd_version: "1.7.22"
 
 # CNI Plugin
 cni_plugin: "calico"  # Options: calico, flannel
-calico_version: "v3.26.3"
-flannel_version: "v0.22.3"
+calico_version: "v3.28.2"
+flannel_version: "v0.25.7"
 
 # Network configuration
 pod_network_cidr: "10.244.0.0/16"

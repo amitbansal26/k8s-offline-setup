@@ -22,3 +22,8 @@ __pycache__/
 
 # Logs
 *.log
+
+# Vagrant
+.vagrant/
+*.box
+.DS_Store

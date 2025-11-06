@@ -51,13 +51,14 @@ A comprehensive Ansible automation solution for deploying Kubernetes clusters in
 
 | Component | Version | Purpose |
 |-----------|---------|---------|
-| Kubernetes | 1.28.0 | Container orchestration |
-| Containerd | 1.7.8 | Container runtime |
-| Calico | 3.26.3 | CNI plugin (default) |
-| Flannel | 0.22.3 | CNI plugin (alternative) |
+| Kubernetes | 1.31.2 | Container orchestration |
+| Containerd | 1.7.22 | Container runtime |
+| Calico | 3.28.2 | CNI plugin (default) |
+| Flannel | 0.25.7 | CNI plugin (alternative) |
 | CNI Plugins | 1.3.0 | Network plugins |
 | Rocky Linux | 10 | Operating system |
 | Ansible | 2.9+ | Automation |
+| Vagrant | 2.2+ | Local development (optional) |
 
 ### Deployment Workflow
 
@@ -65,7 +66,7 @@ A comprehensive Ansible automation solution for deploying Kubernetes clusters in
 ┌─────────────────────────────────────────────────────────────┐
 │ Step 1: Download (Online Machine)                          │
 │   ./setup.sh download                                       │
-│   → Creates: /tmp/k8s-packages-1.28.0.tar.gz               │
+│   → Creates: /tmp/k8s-packages-1.31.2.tar.gz               │
 └─────────────────────────────────────────────────────────────┘
                           │
                           ▼
