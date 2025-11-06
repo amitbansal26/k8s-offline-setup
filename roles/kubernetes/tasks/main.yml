@@ -1,0 +1,30 @@
+---
+- name: Install Kubernetes packages from offline repository
+  shell: |
+    cd {{ target_package_dir }}/rpms
+    rpm -Uvh --force kubeadm-*.rpm kubelet-*.rpm kubectl-*.rpm || true
+  args:
+    warn: false
+  register: k8s_install
+
+- name: Enable and start kubelet
+  systemd:
+    name: kubelet
+    enabled: yes
+    state: started
+  ignore_errors: yes
+
+- name: Create kubelet configuration directory
+  file:
+    path: /var/lib/kubelet
+    state: directory
+    mode: '0755'
+
+- name: Configure crictl to use containerd
+  copy:
+    content: |
+      runtime-endpoint: {{ container_runtime_endpoint }}
+      image-endpoint: {{ container_runtime_endpoint }}
+      timeout: 10
+    dest: /etc/crictl.yaml
+    mode: '0644'

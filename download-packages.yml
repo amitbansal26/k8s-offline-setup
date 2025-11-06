@@ -1,0 +1,94 @@
+---
+- name: Download Kubernetes offline packages
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  become: yes
+  
+  vars:
+    download_dir: "{{ offline_package_dir }}"
+  
+  tasks:
+    - name: Create download directory
+      file:
+        path: "{{ download_dir }}/rpms"
+        state: directory
+        mode: '0755'
+    
+    - name: Install yum-utils for downloading packages
+      package:
+        name: yum-utils
+        state: present
+    
+    - name: Add Kubernetes repository
+      yum_repository:
+        name: kubernetes
+        description: Kubernetes Repository
+        baseurl: https://pkgs.k8s.io/core:/stable:/v1.28/rpm/
+        enabled: yes
+        gpgcheck: yes
+        gpgkey: https://pkgs.k8s.io/core:/stable:/v1.28/rpm/repodata/repomd.xml.key
+    
+    - name: Download Kubernetes packages and dependencies
+      shell: |
+        cd {{ download_dir }}/rpms
+        yumdownloader --resolve --destdir={{ download_dir }}/rpms \
+          kubeadm-{{ kubernetes_version_rhel_package }} \
+          kubelet-{{ kubernetes_version_rhel_package }} \
+          kubectl-{{ kubernetes_version_rhel_package }} \
+          containerd.io \
+          iproute-tc \
+          socat \
+          conntrack-tools \
+          ebtables \
+          ethtool
+      args:
+        creates: "{{ download_dir }}/rpms/kubeadm-*.rpm"
+    
+    - name: Download containerd
+      get_url:
+        url: "https://github.com/containerd/containerd/releases/download/v{{ containerd_version }}/containerd-{{ containerd_version }}-linux-amd64.tar.gz"
+        dest: "{{ download_dir }}/containerd-{{ containerd_version }}-linux-amd64.tar.gz"
+        mode: '0644'
+    
+    - name: Download runc
+      get_url:
+        url: "https://github.com/opencontainers/runc/releases/download/v1.1.9/runc.amd64"
+        dest: "{{ download_dir }}/runc.amd64"
+        mode: '0755'
+    
+    - name: Download CNI plugins
+      get_url:
+        url: "https://github.com/containernetworking/plugins/releases/download/v1.3.0/cni-plugins-linux-amd64-v1.3.0.tgz"
+        dest: "{{ download_dir }}/cni-plugins-linux-amd64-v1.3.0.tgz"
+        mode: '0644'
+    
+    - name: Download Calico manifest (if using Calico)
+      get_url:
+        url: "https://raw.githubusercontent.com/projectcalico/calico/{{ calico_version }}/manifests/calico.yaml"
+        dest: "{{ download_dir }}/calico.yaml"
+        mode: '0644'
+      when: cni_plugin == "calico"
+    
+    - name: Download Flannel manifest (if using Flannel)
+      get_url:
+        url: "https://github.com/flannel-io/flannel/releases/download/{{ flannel_version }}/kube-flannel.yml"
+        dest: "{{ download_dir }}/kube-flannel.yml"
+        mode: '0644'
+      when: cni_plugin == "flannel"
+    
+    - name: Download Kubernetes images list
+      shell: |
+        kubeadm config images list --kubernetes-version {{ kubernetes_version }} > {{ download_dir }}/images-list.txt
+      args:
+        creates: "{{ download_dir }}/images-list.txt"
+    
+    - name: Create a tarball of all packages
+      archive:
+        path: "{{ download_dir }}/*"
+        dest: "{{ download_dir }}-{{ kubernetes_version }}.tar.gz"
+        format: gz
+    
+    - name: Display download completion message
+      debug:
+        msg: "All packages downloaded to {{ download_dir }}. Archive created at {{ download_dir }}-{{ kubernetes_version }}.tar.gz"

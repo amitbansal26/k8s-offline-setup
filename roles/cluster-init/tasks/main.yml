@@ -1,0 +1,51 @@
+---
+- name: Check if Kubernetes is already initialized
+  stat:
+    path: /etc/kubernetes/admin.conf
+  register: k8s_initialized
+
+- name: Initialize Kubernetes cluster
+  shell: |
+    kubeadm init \
+      --kubernetes-version={{ kubernetes_version }} \
+      --pod-network-cidr={{ pod_network_cidr }} \
+      --service-cidr={{ service_cidr }} \
+      --cri-socket={{ container_runtime_endpoint }} \
+      {% if api_server_advertise_address %}--apiserver-advertise-address={{ api_server_advertise_address }}{% endif %} \
+      {% if load_balancer_endpoint %}--control-plane-endpoint={{ load_balancer_endpoint }}{% endif %}
+  when: not k8s_initialized.stat.exists
+  register: kubeadm_init
+
+- name: Create .kube directory for root user
+  file:
+    path: /root/.kube
+    state: directory
+    mode: '0755'
+
+- name: Copy admin.conf to root user's kube config
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /root/.kube/config
+    remote_src: yes
+    mode: '0600'
+
+- name: Generate join command for worker nodes
+  shell: kubeadm token create --print-join-command
+  register: join_command_output
+
+- name: Save join command to file
+  copy:
+    content: "{{ join_command_output.stdout }}"
+    dest: /tmp/k8s-join-command.sh
+    mode: '0755'
+
+- name: Fetch join command to local machine
+  fetch:
+    src: /tmp/k8s-join-command.sh
+    dest: /tmp/k8s-join-command.sh
+    flat: yes
+
+- name: Display cluster initialization status
+  debug:
+    msg: "Kubernetes cluster initialized successfully. Join command saved to /tmp/k8s-join-command.sh"
+  when: kubeadm_init is changed

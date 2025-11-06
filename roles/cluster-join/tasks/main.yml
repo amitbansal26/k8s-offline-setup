@@ -1,0 +1,27 @@
+---
+- name: Check if node is already part of a cluster
+  stat:
+    path: /etc/kubernetes/kubelet.conf
+  register: node_joined
+
+- name: Copy join command from local machine
+  copy:
+    src: /tmp/k8s-join-command.sh
+    dest: /tmp/k8s-join-command.sh
+    mode: '0755'
+  when: not node_joined.stat.exists
+
+- name: Join worker node to cluster
+  shell: /tmp/k8s-join-command.sh
+  when: not node_joined.stat.exists
+  register: join_result
+
+- name: Display join status
+  debug:
+    msg: "Node successfully joined the cluster"
+  when: join_result is changed
+
+- name: Clean up join command file
+  file:
+    path: /tmp/k8s-join-command.sh
+    state: absent

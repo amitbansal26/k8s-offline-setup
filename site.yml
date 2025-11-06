@@ -1,0 +1,35 @@
+---
+- name: Setup Kubernetes cluster in air-gapped environment
+  hosts: k8s_cluster
+  become: yes
+  gather_facts: yes
+  
+  roles:
+    - offline-packages
+    - prerequisites
+    - container-runtime
+    - kubernetes
+
+- name: Initialize Kubernetes master
+  hosts: masters
+  become: yes
+  gather_facts: yes
+  
+  roles:
+    - cluster-init
+
+- name: Join worker nodes to cluster
+  hosts: workers
+  become: yes
+  gather_facts: yes
+  
+  roles:
+    - cluster-join
+
+- name: Install CNI plugin
+  hosts: masters[0]
+  become: yes
+  gather_facts: yes
+  
+  roles:
+    - cni-plugin
